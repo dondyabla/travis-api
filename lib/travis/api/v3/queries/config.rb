@@ -3,14 +3,7 @@ module Travis::API::V3
     params :id, prefix: :job
 
     def find
-      config = Models::Config.new(Models::Job.find(id).config).config
-      config = obfuscate_config(config)
-      config
-    end
-
-    def obfuscate_config(config)
-      config.delete(:gemfile) if config[:gemfile]
-      config
+      Models::Config.new(Models::Job.find(id))
     end
   end
 end

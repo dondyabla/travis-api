@@ -76,7 +76,7 @@ module Travis::API::V3
     end
 
     def config_visible?(config)
-      visible? config
+      visible? config.job
     end
 
     def cron_visible?(cron)

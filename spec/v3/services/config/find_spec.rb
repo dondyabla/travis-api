@@ -12,21 +12,14 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
   describe 'obfuscated config' do
     before     { Travis::API::V3::Models::Permission.create(repository: repo, user: repo.owner, pull: false) }
     before     { get("/v3/job/#{job.id}/config")}
-    before     { p job.id }
-    before     { p last_response.body }
     example    { expect(last_response).to be_ok }
-    example    { expect(parsed_body).to be == { } }
-    it 'handles nil env' do
-      # job.config.merge!(rvm: '1.8.7', env: nil )
-      # job.config.should == {
-      #   rvm: '1.8.7',
-      #   env: nil,
-      #   language: 'ruby',
-      #   group: 'stable',
-      #   dist: 'precise',
-      #   os: 'linux'
-      # }
-    end
+    example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                "rvm"=>"1.9.2",
+                                                "language"=>"ruby",
+                                                "group"=>"stable",
+                                                "dist"=>"precise",
+                                                "os"=>"linux"
+                                              }}
 
     it 'leaves regular vars untouched' do
       # job.config.merge!(rvm: '1.8.7', env: 'FOO=foo')
