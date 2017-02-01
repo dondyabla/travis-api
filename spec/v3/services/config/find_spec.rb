@@ -20,7 +20,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
                                                 "dist"=>"precise",
                                                 "os"=>"linux"
                                               }}
-
+                                              
     it 'leaves regular vars untouched' do
       # job.config.merge!(rvm: '1.8.7', env: 'FOO=foo')
       # job.config.should == {
