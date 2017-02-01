@@ -75,6 +75,10 @@ module Travis::API::V3
       visible? branch.repository
     end
 
+    def config_visible?(config)
+      visible? config
+    end
+
     def cron_visible?(cron)
       visible? cron.branch.repository
     end

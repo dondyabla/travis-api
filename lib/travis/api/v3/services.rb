@@ -10,6 +10,7 @@ module Travis::API::V3
     Build         = Module.new { extend Services }
     Builds        = Module.new { extend Services }
     Caches        = Module.new { extend Services }
+    Config        = Module.new { extend Services }
     Cron          = Module.new { extend Services }
     Crons         = Module.new { extend Services }
     EnvVar        = Module.new { extend Services }
