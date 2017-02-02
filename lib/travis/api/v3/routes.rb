@@ -44,12 +44,16 @@ module Travis::API::V3
       post :restart, '/restart'
       post :debug, '/debug'
 
+      resource :config do
+        route '/config'
+        get   :find
+      end
+
       resource :log do
         route '/log'
         get   :find
         delete :delete
       end
-
     end
 
     resource :lint do
