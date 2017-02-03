@@ -7,13 +7,13 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
   let(:def_branch_jobs){ Travis::API::V3::Models::Build.find(default_branch.last_build.id).jobs}
   let(:jobs)        { Travis::API::V3::Models::Build.find(build.id).jobs }
   let(:job)         { Travis::API::V3::Models::Build.find(build.id).jobs.last }
-  # let(:config)      { job.config }
+  let(:config)      { job.config }
   let(:parsed_body) { JSON.load(body) }
 
   describe 'obfuscated config' do
     describe 'leaves regualr vars untouched' do
       before do
-        job.update_attributes(config: job.config.merge!(rvm: '1.8.7', env: 'FOO=foo'))
+        job.update_attributes(config: config.merge!(rvm: '1.8.7', env: 'FOO=foo'))
         get("/v3/job/#{job.id}/config")
       end
 
