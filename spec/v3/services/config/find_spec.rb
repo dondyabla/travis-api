@@ -1,35 +1,34 @@
 describe Travis::API::V3::Services::Config::Find, set_app: true do
   let(:repo) { Travis::API::V3::Models::Repository.where(owner_name: 'svenfuchs', name: 'minimal').first }
+  let(:token) { Travis::Api::App::AccessToken.create(user: repo.owner, app_id: 1) }
   let(:owner)       { owner_type.find(repo.owner_id)}
   let(:build)       { repo.builds.last }
   let(:default_branch) { repo.default_branch}
   let(:def_branch_jobs){ Travis::API::V3::Models::Build.find(default_branch.last_build.id).jobs}
   let(:jobs)        { Travis::API::V3::Models::Build.find(build.id).jobs }
   let(:job)         { Travis::API::V3::Models::Build.find(build.id).jobs.last }
-  let(:config)      { job.config }
+  # let(:config)      { job.config }
   let(:parsed_body) { JSON.load(body) }
 
   describe 'obfuscated config' do
-    before     { Travis::API::V3::Models::Permission.create(repository: repo, user: repo.owner, pull: false) }
-    before     { get("/v3/job/#{job.id}/config")}
-    example    { expect(last_response).to be_ok }
-    example    { expect(parsed_body).to be == { "@type"=>"config",
-                                                "rvm"=>"1.9.2",
-                                                "language"=>"ruby",
-                                                "group"=>"stable",
-                                                "dist"=>"precise",
-                                                "os"=>"linux"
-                                              }}
-                                              
-    it 'leaves regular vars untouched' do
-      # job.config.merge!(rvm: '1.8.7', env: 'FOO=foo')
-      # job.config.should == {
-      #   rvm: '1.8.7',
-      #   env: 'FOO=foo'
-      # }
+    describe 'leaves regualr vars untouched' do
+      before do
+        job.update_attributes(config: job.config.merge!(rvm: '1.8.7', env: 'FOO=foo'))
+        get("/v3/job/#{job.id}/config")
+      end
+
+      example    { expect(last_response).to be_ok }
+      example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                  "rvm"=>"1.8.7",
+                                                  "language"=>"ruby",
+                                                  "group"=>"stable",
+                                                  "dist"=>"precise",
+                                                  "os"=>"linux",
+                                                  "env"=>"FOO=foo"
+                                                }}
     end
 
-    it 'obfuscates env vars, including accidents' do
+    describe 'obfuscates env vars, including accidents' do
       # secure = job.repository.key.secure
       # job.expects(:secure_env_enabled?).at_least_once.returns(true)
       # config = { rvm: '1.8.7',
@@ -43,8 +42,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
       # }
     end
 
-    it 'normalizes env vars which are hashes to strings' do
-      # # job = Job.new(repository: repo)
+    describe 'normalizes env vars which are hashes to strings' do
       # job.expects(:secure_env_enabled?).at_least_once.returns(true)
       #
       # config = { rvm: '1.8.7',
@@ -59,44 +57,55 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
       # }
     end
 
-    it 'removes addons config if it is not a hash' do
-      # # job = Job.new(repository: repo)
-      # config = { rvm: '1.8.7',
-      #            addons: "foo",
-      #          }
-      # job.config = config
-      #
-      # job.obfuscated_config.should == {
-      #   rvm: '1.8.7'
-      # }
+    describe 'removes addons config if it is not a hash' do
+      before do
+        job.update_attributes(config: job.config.merge!(rvm: '1.8.7', addons: 'foo'))
+        get("/v3/job/#{job.id}/config")
+      end
+
+      example    { expect(last_response).to be_ok }
+      example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                  "rvm"=>"1.8.7",
+                                                  "language"=>"ruby",
+                                                  "group"=>"stable",
+                                                  "dist"=>"precise",
+                                                  "os"=>"linux"
+                                                }}
     end
 
-    it 'removes addons items which are not safelisted' do
-      # # job = Job.new(repository: repo)
-      # config = { rvm: '1.8.7',
-      #            addons: { sauce_connect: true, firefox: '22.0' },
-      #          }
-      # job.config = config
-      #
-      # job.obfuscated_config.should == {
-      #   rvm: '1.8.7',
-      #   addons: {
-      #     firefox: '22.0'
-      #   }
-      # }
+    describe 'removes addons items which are not safelisted' do
+      before do
+        job.update_attributes(config: job.config.merge!(rvm: '1.8.7', addons: { sauce_connect: true, firefox: '22.0' }))
+        get("/v3/job/#{job.id}/config")
+      end
+
+      example    { expect(last_response).to be_ok }
+      example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                  "rvm"=>"1.8.7",
+                                                  "language"=>"ruby",
+                                                  "group"=>"stable",
+                                                  "dist"=>"precise",
+                                                  "os"=>"linux",
+                                                  "addons"=>{"firefox"=>"22.0"}
+                                                }}
     end
 
-    it 'removes source key' do
-      # # job = Job.new(repository: repo)
-      # config = { rvm: '1.8.7',
-      #            source_key: '1234'
-      #          }
-      # job.config = config
-      #
-      # job.obfuscated_config.should == {
-      #   rvm: '1.8.7',
-      # }
+    describe 'removes source key, gemfile, notifications, linux_shared' do
+      before do
+        job.update_attributes(config: job.config.merge!(gemfile: 'ddddd', rvm: '1.8.7', source_key: '1234', linux_shared: 'precise', notifications: 'email'))
+        get("/v3/job/#{job.id}/config")
+      end
+
+      example    { expect(last_response).to be_ok }
+      example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                  "rvm"=>"1.8.7",
+                                                  "language"=>"ruby",
+                                                  "group"=>"stable",
+                                                  "dist"=>"precise",
+                                                  "os"=>"linux"
+                                                }}
     end
+
 
     context 'when job has secure env disabled' do
       # let :job do
