@@ -29,6 +29,22 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
     end
 
     describe 'obfuscates env vars, including accidents' do
+      before do
+        p repo.key.secure
+        # secure = job.repository.key.secure
+        job.update_attributes(config: config.merge!(rvm: '1.8.7', env: [secure.encrypt('BAR=barbaz'), secure.encrypt('PROBLEM'),'FOO=foo']))
+        get("/v3/job/#{job.id}/config")
+      end
+
+      example    { expect(last_response).to be_ok }
+      example    { expect(parsed_body).to be == { "@type"=>"config",
+                                                  "rvm"=>"1.8.7",
+                                                  "language"=>"ruby",
+                                                  "group"=>"stable",
+                                                  "dist"=>"precise",
+                                                  "os"=>"linux",
+                                                  "env"=>"FOO=foo"
+                                                }}
       # secure = job.repository.key.secure
       # job.expects(:secure_env_enabled?).at_least_once.returns(true)
       # config = { rvm: '1.8.7',
