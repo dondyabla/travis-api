@@ -9,6 +9,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
   let(:job)         { Travis::API::V3::Models::Build.find(build.id).jobs.last }
   let(:config)      { job.config }
   let(:parsed_body) { JSON.load(body) }
+  let(:env_var)     { Travis::Settings::EncryptedValue.new('BAR=barbaz') }
 
   describe 'obfuscated config' do
     describe 'leaves regualr vars untouched' do
@@ -23,6 +24,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
                                                   "language"=>"ruby",
                                                   "group"=>"stable",
                                                   "dist"=>"precise",
+                                                  "gemfile"=>"test/Gemfile.rails-3.0.x",
                                                   "os"=>"linux",
                                                   "env"=>"FOO=foo"
                                                 }}
@@ -30,15 +32,14 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
 
     describe 'obfuscates env vars, including accidents' do
       before do
-        p repo.key.secure
-        # secure = job.repository.key.secure
-        job.update_attributes(config: config.merge!(rvm: '1.8.7', env: [secure.encrypt('BAR=barbaz'), secure.encrypt('PROBLEM'),'FOO=foo']))
+        job.update_attributes(config: config.merge!(rvm: '1.8.7', env: [{ secure: env_var }]))
         get("/v3/job/#{job.id}/config")
       end
 
       example    { expect(last_response).to be_ok }
       example    { expect(parsed_body).to be == { "@type"=>"config",
                                                   "rvm"=>"1.8.7",
+                                                  "gemfile"=>"test/Gemfile.rails-3.0.x",
                                                   "language"=>"ruby",
                                                   "group"=>"stable",
                                                   "dist"=>"precise",
@@ -82,6 +83,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
       example    { expect(last_response).to be_ok }
       example    { expect(parsed_body).to be == { "@type"=>"config",
                                                   "rvm"=>"1.8.7",
+                                                  "gemfile"=>"test/Gemfile.rails-3.0.x",
                                                   "language"=>"ruby",
                                                   "group"=>"stable",
                                                   "dist"=>"precise",
@@ -98,6 +100,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
       example    { expect(last_response).to be_ok }
       example    { expect(parsed_body).to be == { "@type"=>"config",
                                                   "rvm"=>"1.8.7",
+                                                  "gemfile"=>"test/Gemfile.rails-3.0.x",
                                                   "language"=>"ruby",
                                                   "group"=>"stable",
                                                   "dist"=>"precise",
@@ -106,7 +109,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
                                                 }}
     end
 
-    describe 'removes source key, gemfile, notifications, linux_shared' do
+    describe 'removes source key, notifications, linux_shared' do
       before do
         job.update_attributes(config: job.config.merge!(gemfile: 'ddddd', rvm: '1.8.7', source_key: '1234', linux_shared: 'precise', notifications: 'email'))
         get("/v3/job/#{job.id}/config")
@@ -115,6 +118,7 @@ describe Travis::API::V3::Services::Config::Find, set_app: true do
       example    { expect(last_response).to be_ok }
       example    { expect(parsed_body).to be == { "@type"=>"config",
                                                   "rvm"=>"1.8.7",
+                                                  "gemfile"=>"ddddd",
                                                   "language"=>"ruby",
                                                   "group"=>"stable",
                                                   "dist"=>"precise",
